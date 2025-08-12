@@ -1,4 +1,5 @@
-flask
+streamlit
 opencv-python
 numpy
 Pillow
+streamlit-lottie
