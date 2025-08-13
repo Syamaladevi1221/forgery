@@ -140,10 +140,9 @@ if st.session_state.show_main:
     col1, col2 = st.columns([0.7, 0.3])
     
     with col1:
-        st.markdown("<div class='title-text'>🔎 Image Authenticity Analyzer</div>", unsafe_allow_html=True)
+        st.markdown("<div class='title-text'>🔎 Image Forgery Detection </div>", unsafe_allow_html=True)
         st.markdown("<div class='subtitle-text'>Forensic tool to detect digital image tampering and manipulations</div>", unsafe_allow_html=True)
         
-        # File upload with progress
         with st.expander("📤 Upload Images", expanded=True):
             st.markdown("### Select images to compare")
             col_upload1, col_upload2 = st.columns(2)
@@ -160,7 +159,7 @@ if st.session_state.show_main:
             try:
                 progress_bar = st.progress(0)
                 
-                # Save uploaded files to temp files
+                # Save uploaded files
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as orig_temp:
                     orig_temp.write(original_file.read())
                     original_path = orig_temp.name
@@ -177,9 +176,8 @@ if st.session_state.show_main:
                 img1 = Image.open(original_path)
                 img2 = Image.open(test_path)
                 
-                # Image preview with tabs
+                # Image preview
                 st.markdown("<div class='section-header'>🖼️ Image Preview</div>", unsafe_allow_html=True)
-                
                 tab1, tab2 = st.tabs(["Side-by-Side", "Overlay"])
                 
                 with tab1:
@@ -218,25 +216,30 @@ if st.session_state.show_main:
                         st.error("❌ Cryptographic Alert: Images have different digital fingerprints")
                         
                         with st.spinner("Detecting visual differences..."):
-                            # Read images with OpenCV
+                            # Read with OpenCV
                             image1 = cv2.imread(original_path)
                             image2 = cv2.imread(test_path)
-                            
+
                             if image1 is not None and image2 is not None:
+                                # FIX: Ensure matching size & channels
+                                if image1.shape[:2] != image2.shape[:2]:
+                                    image2 = cv2.resize(image2, (image1.shape[1], image1.shape[0]))
+                                if len(image1.shape) != len(image2.shape):
+                                    if len(image1.shape) == 3 and len(image2.shape) == 2:
+                                        image2 = cv2.cvtColor(image2, cv2.COLOR_GRAY2BGR)
+                                    elif len(image2.shape) == 3 and len(image1.shape) == 2:
+                                        image1 = cv2.cvtColor(image1, cv2.COLOR_GRAY2BGR)
+
                                 diff_img = detect_changes(image1, image2)
                                 
                                 st.markdown("#### 🧐 Visual Tampering Detection")
-                                
                                 col_diff1, col_diff2 = st.columns(2)
                                 
                                 with col_diff1:
-                                    st.image(diff_img, 
-                                           caption="Difference Map (White = Changed Areas)", 
-                                           use_column_width=True, 
-                                           channels="GRAY")
+                                    st.image(diff_img, caption="Difference Map (White = Changed Areas)", 
+                                             use_column_width=True, channels="GRAY")
                                 
                                 with col_diff2:
-                                    # Save difference image temporarily
                                     diff_path = "difference_map.png"
                                     cv2.imwrite(diff_path, diff_img)
                                     
@@ -262,7 +265,6 @@ if st.session_state.show_main:
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
             finally:
-                # Clean up files
                 if 'original_path' in locals() and os.path.exists(original_path):
                     os.remove(original_path)
                 if 'test_path' in locals() and os.path.exists(test_path):
@@ -275,7 +277,6 @@ if st.session_state.show_main:
         
         if original_file and test_file:
             if 'hash1' in locals() and 'hash2' in locals():
-                # Create a summary card
                 with st.container():
                     st.markdown("<div class='card'>", unsafe_allow_html=True)
                     
@@ -283,7 +284,6 @@ if st.session_state.show_main:
                         st.markdown("### 🔒 Verification Result")
                         st.success("**Authentic**")
                         st.markdown("The images are cryptographically identical.")
-                        
                         st.markdown("---")
                         st.markdown("**Technical Details**")
                         st.markdown(f"""
@@ -295,7 +295,6 @@ if st.session_state.show_main:
                         st.markdown("### 🚨 Verification Result")
                         st.error("**Potential Tampering Detected**")
                         st.markdown("The images differ in their digital fingerprints.")
-                        
                         st.markdown("---")
                         st.markdown("**Technical Details**")
                         st.markdown(f"""
@@ -307,7 +306,6 @@ if st.session_state.show_main:
                     
                     st.markdown("</div>", unsafe_allow_html=True)
         
-        # Add some sample cases or tips
         with st.expander("💡 Quick Tips"):
             st.markdown("""
             - **For best results**, use high-quality images
@@ -320,17 +318,14 @@ if st.session_state.show_main:
               - Resaving images creates new hashes
             """)
         
-        # Add a feedback section
         with st.expander("📝 Feedback"):
             feedback = st.text_area("Help us improve this tool")
             if st.button("Submit Feedback"):
                 st.success("Thank you for your feedback!")
     
-    # Footer
     st.markdown("---")
     st.markdown("""
     <p style='text-align:center; color:#7f8c8d; font-size:0.9rem'>
-    
     <a href="#" style="color:#3498db; text-decoration:none">Privacy Policy</a> • 
     <a href="#" style="color:#3498db; text-decoration:none">Terms of Use</a>
     </p>
